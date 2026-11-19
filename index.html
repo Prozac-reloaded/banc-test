@@ -41,6 +41,26 @@
 <!-- External CSS files -->
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/finetune.css">
+<style>
+  /* Tech-Cleaner : version atelier / version client */
+  .tc-client-only { display: none !important; }
+  .tc-client div.tc-client-only { display: block !important; }
+  .tc-client span.tc-client-only { display: inline !important; }
+  .tc-client .tc-atelier-only { display: none !important; }
+  .tc-client body { padding-bottom: 140px; }
+  .tcc-step { display: flex; gap: .6rem; align-items: flex-start; padding: .5rem 0; border-bottom: 1px solid var(--bs-border-color); }
+  .tcc-step:last-child { border-bottom: 0; }
+  .tcc-step .num { font-size: 1.1rem; width: 1.4rem; text-align: center; }
+</style>
+<script>
+  // Applique le mode client avant l'affichage (évite un clignotement)
+  (function () {
+    var clientHosts = ['test-manette.techcleaner.fr'];
+    if (clientHosts.indexOf(location.hostname) >= 0 || /[?&]client(=|&|$)/.test(location.search)) {
+      document.documentElement.classList.add('tc-client');
+    }
+  })();
+</script>
 
 </head>
 <body>
@@ -48,7 +68,7 @@
 
   <nav class="navbar bg-body-tertiary navbar-expand-md bg-body-tertiary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="https://techcleaner.fr" target="_blank"><b>Tech-Cleaner</b> <span class="text-muted fs-6">· Banc de test manettes</span></a>
+      <a class="navbar-brand" href="https://techcleaner.fr" target="_blank"><b>Tech-Cleaner</b> <span class="text-muted fs-6 tc-atelier-only">· Banc de test manettes</span><span class="text-muted fs-6 tc-client-only">· Testez votre manette</span></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -56,7 +76,7 @@
       <div class="collapse navbar-collapse container-fluid justify-content-end" id="navbarNavDropdown">
 
         <ul class="navbar-nav">
-          <li class="nav-item">
+          <li class="nav-item tc-atelier-only">
             <a class="nav-link ds-i18n" href="#" onclick="show_faq_modal();">Frequently Asked Questions</a>
           </li>
           <li class="nav-item dropdown" id="navbarNavAltMarkup">
@@ -102,7 +122,18 @@
     </div>
 
     <div id="offlinebar" class="vstack p-2" style="display: none;">
-      <p class="ds-i18n">Please connect a DualShock 4, a DualSense, DualSense Edge or VR2 controller to your computer and press Connect.</p>
+      <div class="tc-client-only mb-3">
+        <h1 class="h3 mb-2">Testez votre manette PlayStation gratuitement</h1>
+        <p class="mb-2">Drift des joysticks, boutons, gâchettes, vibrations, micro… En quelques minutes, vérifiez l'état de votre manette
+          <b>PS4 (DualShock 4), PS5 (DualSense) ou DualSense Edge</b> et obtenez un pré-diagnostic avec la réparation conseillée.</p>
+        <ul class="small mb-2">
+          <li>Sur un <b>ordinateur</b> (PC ou Mac) avec <b>Google Chrome</b> ou <b>Microsoft Edge</b>. Les téléphones et tablettes ne sont pas compatibles.</li>
+          <li>Branchez la manette <b>avec un câble USB</b> (le Bluetooth ne suffit pas), puis cliquez sur « Connecter ».</li>
+          <li>Le test ne modifie rien dans votre manette.</li>
+        </ul>
+        <p class="small text-muted mb-0">Client Tech-Cleaner équipé de joysticks TMR ? Après connexion, utilisez la rubrique « Recalibrage TMR » avec le code figurant sur votre rapport.</p>
+      </div>
+      <p class="ds-i18n tc-atelier-only">Please connect a DualShock 4, a DualSense, DualSense Edge or VR2 controller to your computer and press Connect.</p>
       <button id="btnconnect" type="button" class="btn btn-outline-primary" onclick="connect()">
         <span class="spinner-border spinner-border-sm" style="display: none;" id="connectspinner" aria-hidden="true"></span>
         <span class="ds-i18n">Connect</span>
@@ -123,7 +154,7 @@
     </div>
 
     <div id="mainmenu" class="container" style="display: none;">
-      <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+      <ul class="nav nav-tabs mb-3 tc-atelier-only" id="mainTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link active" id="controller-tab" data-bs-toggle="tab" data-bs-target="#controller-content" type="button" role="tab" aria-controls="controller-content" aria-selected="true">
             <i class="fas fa-gamepad"></i>&nbsp;&nbsp;<span class="ds-i18n">Calibration</span>
@@ -155,14 +186,14 @@
                 <div class="card-header"><i class="fas fa-gamepad"></i>&nbsp;&nbsp;<span class="ds-i18n">Controller Info</span></div>
                 <div class="card-body">
                   <dl class="row px-3 py-2" id="fwinfo"></dl>
-                  <span id="infoshowall" class="pb-4 px-4 row">
+                  <span id="infoshowall" class="pb-4 px-4 row tc-atelier-only">
                     <button class="btn btn-outline-secondary" onclick="show_info_tab()"><i class="fas fa-plus me-1"></i> <span class="ds-i18n">Show all</span></button>
                   </span>
                   </div>
               </div>
               <br>
 
-              <div class="d-flex justify-content-end gap-2">
+              <div class="d-flex justify-content-end gap-2 tc-atelier-only">
                 <div class="d-flex" id="quick-tests-div">
                   <button type="button" class="btn btn-outline-primary ds-btn mb-3" onclick="show_quick_test_modal()" id="quick-test-btn">
                     <i class="fas fa-vial" id="quick-test-icon"></i>&nbsp;&nbsp;
@@ -180,7 +211,7 @@
               </div>
             </div>
 
-            <div class="col-md-6 col-sm-12" style="min-width: 330px;">
+            <div class="col-md-6 col-sm-12 tc-atelier-only" style="min-width: 330px;" id="calib-column">
               <div class="vstack gap-2 p-2">
                 <button type="button" class="btn btn-primary ds-btn" onclick="calibrate_stick_centers()" id="four-step-center-calib" style="display: none;">
                   <span class="ds-i18n">Calibrate stick center</span>
@@ -283,6 +314,103 @@
                 </div>
               </div>
             </div>
+            <!-- Tech-Cleaner : version client -->
+            <div class="col-md-6 col-sm-12" id="tc-client-column" style="display: none; min-width: 330px;">
+              <div class="card mb-3">
+                <div class="card-header"><i class="fas fa-stethoscope me-2"></i><b>Pré-diagnostic de votre manette</b></div>
+                <div class="card-body">
+                  <div class="tcc-step">
+                    <div class="num fw-bold">1</div>
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold">Boutons et fonctions</div>
+                      <div class="small text-muted mb-1">Boutons, gâchettes, pavé tactile, vibrations, lumières, micro… Laissez-vous guider.</div>
+                      <button type="button" class="btn btn-outline-primary btn-sm" onclick="tcc_open_quick_test()"><i class="fas fa-vial me-1"></i>Lancer les tests</button>
+                      <div class="small mt-1" id="tcc-tests-summary"></div>
+                    </div>
+                  </div>
+                  <div class="tcc-step">
+                    <div class="num fw-bold">2</div>
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold">Joysticks</div>
+                      <div class="text-center"><canvas id="tcc-canvas" width="300" height="150"></canvas></div>
+                      <div class="small text-muted mb-1"><b>Drift</b> : lâchez les deux joysticks, puis cliquez. <b>Amplitude</b> : faites des tours complets, joystick à fond.</div>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="tcc-drift-btn" onclick="tcc_measure_drift()"><i class="fas fa-crosshairs me-1"></i>Tester le drift</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="tcc-circ-btn" onclick="tcc_toggle_circ()"><i class="fas fa-circle-notch me-1"></i>Tester l'amplitude</button>
+                      </div>
+                      <div class="mt-1" id="tcc-drift-status"></div>
+                      <div class="mt-1" id="tcc-circ-status"></div>
+                    </div>
+                  </div>
+                  <div class="tcc-step">
+                    <div class="num fw-bold">3</div>
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold mb-1">Résultat</div>
+                      <button type="button" class="btn btn-primary" onclick="tcc_show_diagnosis()"><i class="fas fa-clipboard-list me-1"></i>Voir mon pré-diagnostic</button>
+                      <div class="mt-2" id="tcc-result" style="display: none;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card mb-3">
+                <div class="card-header"><i class="fas fa-key me-2"></i><b>Recalibrage TMR</b> <span class="small text-muted">· clients Tech-Cleaner</span></div>
+                <div class="card-body">
+                  <div id="tcc-tmr-locked">
+                    <p class="small mb-2">Vos joysticks TMR ont été posés chez Tech-Cleaner ? Saisissez le code personnel indiqué sur votre rapport pour recalibrer votre manette vous-même.</p>
+                    <div class="input-group" style="max-width: 360px;">
+                      <input type="text" class="form-control font-monospace text-uppercase" id="tcc-code-input" placeholder="XXXX-XXXX" maxlength="12" autocomplete="off" onkeydown="if(event.key==='Enter') tcc_unlock()">
+                      <button class="btn btn-primary" type="button" id="tcc-code-btn" onclick="tcc_unlock()">Déverrouiller</button>
+                    </div>
+                    <div class="small mt-1" id="tcc-code-msg"></div>
+                    <p class="small text-muted mt-2 mb-0">Pas encore équipé ? Les joysticks TMR mettent fin au drift.
+                      <a href="https://www.techcleaner.fr/booking-calendar/reparation-manettes" target="_blank">Prendre rendez-vous</a>.</p>
+                  </div>
+
+                  <div id="tcc-tmr-steps" style="display: none;">
+                    <div class="alert alert-info small py-2">Rien n'est enregistré dans la manette avant l'étape 4. En cas de doute, cliquez sur « Annuler » : la manette redémarre avec son ancien calibrage.</div>
+                    <div class="tcc-step">
+                      <div class="num" id="tcc-step1-state"></div>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold">1. Centre</div>
+                        <div class="small text-muted mb-1">Posez la manette à plat, ne touchez pas les joysticks, puis suivez les instructions.</div>
+                        <button type="button" class="btn btn-primary btn-sm" id="tcc-center-btn" onclick="tcc_tmr_center()">Calibrer le centre</button>
+                      </div>
+                    </div>
+                    <div class="tcc-step">
+                      <div class="num" id="tcc-step2-state"></div>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold">2. Amplitude</div>
+                        <div class="small text-muted mb-1">Faites plusieurs tours complets avec chaque joystick, poussé à fond, lentement.</div>
+                        <button type="button" class="btn btn-primary btn-sm" id="tcc-range-btn" onclick="tcc_tmr_range()">Calibrer l'amplitude</button>
+                      </div>
+                    </div>
+                    <div class="tcc-step">
+                      <div class="num" id="tcc-step3-state"></div>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold">3. Vérification</div>
+                        <div class="text-center"><canvas id="tcc-tmr-canvas" width="300" height="150"></canvas></div>
+                        <button type="button" class="btn btn-primary btn-sm" id="tcc-verify-btn" onclick="tcc_tmr_verify()">Vérifier le résultat</button>
+                        <div class="mt-1" id="tcc-verify-status"></div>
+                      </div>
+                    </div>
+                    <div class="tcc-step">
+                      <div class="num" id="tcc-step4-state"></div>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold">4. Enregistrement</div>
+                        <div class="d-flex gap-2 flex-wrap mt-1">
+                          <button type="button" class="btn btn-success btn-sm" id="tcc-save-btn" onclick="tcc_tmr_save()"><i class="fas fa-floppy-disk me-1"></i>Enregistrer dans la manette</button>
+                          <button type="button" class="btn btn-outline-secondary btn-sm" id="tcc-cancel-btn" onclick="tcc_tmr_cancel()" style="display: none;">Annuler (redémarrer la manette)</button>
+                        </div>
+                        <div class="small text-success fw-bold mt-1" id="tcc-saved-msg" style="display: none;"><i class="fas fa-circle-check me-1"></i>Calibrage enregistré. Vous pouvez débrancher votre manette.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="small text-muted">Outil gratuit fourni par Tech-Cleaner, sans garantie, non affilié à Sony ni PlayStation. Aucune donnée n'est envoyée : le test se déroule entièrement dans votre navigateur.</p>
+            </div>
           </div>
         </div>
         <!-- <div class="tab-pane" id="tests-content" role="tabpanel" aria-labelledby="tests-tab">
@@ -382,7 +510,7 @@
   </div>
 
   <!-- About drift and this utility -->
-  <div id="aboutdrift" style="position: fixed; bottom: 6em; left: 0; right: 0; z-index: 0; display: none;">
+  <div id="aboutdrift" class="tc-atelier-only" style="position: fixed; bottom: 6em; left: 0; right: 0; z-index: 0; display: none;">
     <div class="container">
       <div class="mb-4" style="border: 2px solid var(--bs-link-color); border-radius: 8px; color: var(--bs-link-color); padding: 12px; background-color: var(--bs-body-bg);">
         <p class="mb-2">

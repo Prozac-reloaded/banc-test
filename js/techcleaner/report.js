@@ -13,6 +13,7 @@
 
 import { tcSession, QUICK_TEST_LABELS_FR } from './session.js';
 import { draw_stick_dial, CIRCULARITY_DATA_SIZE, calculateCircularityError } from '../stick-renderer.js';
+import { tmrCodeFor } from './tmr-code.js';
 
 // ---------------------------------------------------------------------------
 // Paramètres atelier (modifiables)
@@ -25,6 +26,8 @@ export const TC_CONFIG = {
   phone: '06 63 47 78 58',
   email: 'techcleaner95@gmail.com',
   website: 'techcleaner.fr',
+  // Adresse de la version client (recalibrage TMR à domicile)
+  clientToolUrl: 'test-manette.techcleaner.fr',
   // Logo optionnel : déposer le fichier dans images/ (laisser '' pour le logo texte)
   logoUrl: 'images/techcleaner-logo.png',
 
@@ -306,7 +309,7 @@ function renderInterventionsCheckboxes() {
       <input class="form-check-input tc-interv" type="checkbox" value="${i.id}" id="tc-i-${i.id}">
       <label class="form-check-label" for="tc-i-${i.id}">${esc(i.label)}</label>
     </div>`).join(''));
-  $c.on('change', '.tc-interv', updateWarrantySuggestion);
+  $c.on('change', '.tc-interv', () => { updateWarrantySuggestion(); updateTmrCodeDisplay(); });
 }
 
 function updateWarrantySuggestion() {
@@ -315,8 +318,17 @@ function updateWarrantySuggestion() {
   $('#tc-warranty').val(String(tmr ? TC_CONFIG.warrantyTmrMonths : TC_CONFIG.warrantyDefaultMonths));
 }
 
+async function updateTmrCodeDisplay() {
+  const $d = $('#tc-tmr-code');
+  if (!$d.length) return;
+  if (!$('#tc-i-tmr').is(':checked') || !tcSession.serialNumber) { $d.hide(); return; }
+  const code = await tmrCodeFor(tcSession.serialNumber);
+  $d.html(`<i class="fas fa-key me-1"></i>Code recalibrage TMR du client : <b class="font-monospace">${esc(code)}</b> <span class="text-muted">(imprimé sur le rapport)</span>`).show();
+}
+
 export function tc_open_report_modal() {
   renderInterventionsCheckboxes();
+  updateTmrCodeDisplay();
   renderDetectedInfo();
   updateCenterStatus();
   updateCircularityStatus();
@@ -360,6 +372,7 @@ function collectReportData() {
     orderRef: $('#tc-order').val().trim(),
     technician: $('#tc-tech').val().trim(),
     interventions,
+    interventionIds: checked,
     warrantyMonths,
     warrantyEnd: warrantyMonths ? addMonths(now.toISOString(), warrantyMonths) : null,
     observations: $('#tc-notes').val().trim(),
@@ -512,6 +525,7 @@ export function buildReportHtml(r) {
   td.c { white-space: nowrap; }
   .ok { color: #1a7f37; font-weight: 700; } .ko { color: #c62828; font-weight: 700; } .na { color: #999; }
   .muted { color: #888; }
+  .tmr .code { font-family: Consolas, monospace; font-size: 15px; font-weight: 800; letter-spacing: 2px; background: #eef4ff; border: 1px dashed #0b63ce; padding: 2px 8px; border-radius: 4px; display: inline-block; }
   .sticks { display: flex; justify-content: space-around; gap: 12px; }
   .stick { text-align: center; }
   .stick-title { font-weight: 700; margin-bottom: 4px; }
@@ -577,6 +591,12 @@ export function buildReportHtml(r) {
     </section>
   </div>
 
+  ${r.tmrCode ? `<section class="tmr"><h2>Recalibrage TMR à domicile</h2>
+    <div>Vos joysticks TMR peuvent être recalibrés à tout moment, depuis un ordinateur (Chrome ou Edge) avec la manette branchée en USB :
+    rendez-vous sur <b>${esc(TC_CONFIG.clientToolUrl)}</b>, rubrique « Recalibrage TMR », et saisissez votre code personnel.</div>
+    <div style="margin-top: 6px;">Votre code : <span class="code">${esc(r.tmrCode)}</span>
+    <span class="muted">— valable uniquement pour cette manette (n° ${esc(r.device.serialNumber)})</span></div>
+  </section>` : ''}
   ${r.observations ? `<section><h2>Observations</h2><div>${nl2br(r.observations)}</div></section>` : ''}
   ${reserves.length ? `<section><h2>Remarques</h2><ul>${reserves.map(x => `<li>${x}</li>`).join('')}</ul></section>` : ''}
 
@@ -595,8 +615,8 @@ export function buildReportHtml(r) {
 // Génération, historique
 // ---------------------------------------------------------------------------
 
-function openReportWindow(html) {
-  const w = window.open('', '_blank');
+function openReportWindow(html, existingWindow = null) {
+  const w = existingWindow || window.open('', '_blank');
   if (!w) {
     // Fenêtre bloquée : téléchargement du fichier HTML à la place
     downloadFile(html, 'rapport-techcleaner.html', 'text/html');
@@ -625,14 +645,19 @@ function saveHistory(list) {
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX))); } catch (e) { console.warn('Historique non enregistré', e); }
 }
 
-export function tc_generate_report() {
+export async function tc_generate_report() {
   if (measures.circRunning) tc_toggle_circularity();
+  // Ouvrir la fenêtre tout de suite (sinon bloquée par le navigateur après un await)
+  const win = window.open('', '_blank');
   const r = collectReportData();
+  if (r.interventionIds.includes('tmr') && r.device.serialNumber) {
+    r.tmrCode = await tmrCodeFor(r.device.serialNumber);
+  }
   const list = loadHistory();
   list.unshift(r);
   saveHistory(list);
   renderHistory();
-  openReportWindow(buildReportHtml(r));
+  openReportWindow(buildReportHtml(r), win);
 }
 
 function renderHistory() {
@@ -649,11 +674,19 @@ function renderHistory() {
     return `<tr>
       <td class="small">${fmtDate(r.createdAt)}<br><span class="text-muted">${esc(r.id)}</span></td>
       <td>${esc(r.client || '—')}${r.orderRef ? `<br><span class="text-muted small">${esc(r.orderRef)}</span>` : ''}</td>
-      <td class="small">${esc(r.device?.name || '')}<br><span class="text-muted">${esc(r.device?.serialNumber || '')}</span></td>
+      <td class="small">${esc(r.device?.name || '')}<br><span class="text-muted">${esc(r.device?.serialNumber || '')}</span>${r.tmrCode ? `<br><span class="font-monospace">Code TMR ${esc(r.tmrCode)}</span>` : ''}</td>
       <td><span class="badge bg-${badge}</span></td>
       <td class="text-end"><button class="btn btn-sm btn-outline-primary" onclick="tc_reprint_report(${i})" title="Réimprimer"><i class="fas fa-print"></i></button></td>
     </tr>`;
   }).join(''));
+}
+
+export async function tc_generate_tmr_code() {
+  const serial = $('#tc-gen-serial').val().trim();
+  const code = serial ? await tmrCodeFor(serial) : null;
+  $('#tc-gen-result').html(code
+    ? `Code : <b class="font-monospace fs-5">${esc(code)}</b> <button type="button" class="btn btn-sm btn-link" onclick="navigator.clipboard.writeText('${code}')">Copier</button>`
+    : '<span class="text-danger">Saisissez un n° de série.</span>');
 }
 
 export function tc_reprint_report(index) {
@@ -667,9 +700,9 @@ export function tc_export_history() {
   downloadFile(JSON.stringify(list, null, 2), `historique-rapports-techcleaner-${stamp}.json`, 'application/json');
 
   // Export tableur (CSV ; séparateur point-virgule pour Excel FR)
-  const head = ['Date', 'N° rapport', 'Client', 'Référence', 'Manette', 'N° série', 'Interventions', 'Garantie (mois)', 'Verdict'];
+  const head = ['Date', 'N° rapport', 'Client', 'Référence', 'Manette', 'N° série', 'Interventions', 'Garantie (mois)', 'Verdict', 'Code TMR'];
   const rows = list.map(r => [fmtDate(r.createdAt), r.id, r.client, r.orderRef, r.device?.name, r.device?.serialNumber,
-    (r.interventions || []).join(' + '), r.warrantyMonths, { ok: 'Conforme', reserve: 'Réserves', fail: 'Non conforme' }[computeVerdict(r).status]]);
+    (r.interventions || []).join(' + '), r.warrantyMonths, { ok: 'Conforme', reserve: 'Réserves', fail: 'Non conforme' }[computeVerdict(r).status], r.tmrCode || '']);
   const csv = [head, ...rows].map(row => row.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
   downloadFile('﻿' + csv, `historique-rapports-techcleaner-${stamp}.csv`, 'text/csv');
 }
@@ -692,5 +725,5 @@ export function tc_import_history(input) {
 // Exposition pour les onclick du template
 Object.assign(window, {
   tc_open_report_modal, tc_measure_center, tc_toggle_circularity, tc_generate_report,
-  tc_reprint_report, tc_export_history, tc_import_history, tc_open_quick_test_from_report,
+  tc_reprint_report, tc_export_history, tc_import_history, tc_open_quick_test_from_report, tc_generate_tmr_code,
 });

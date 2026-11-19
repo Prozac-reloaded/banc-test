@@ -88,6 +88,7 @@
                       <div class="mt-3 small fw-semibold">Travaux réalisés</div>
                       <div class="row small" id="tc-interventions"></div>
                       <input type="text" class="form-control form-control-sm mt-1" id="tc-interv-other" placeholder="Autre intervention (facultatif)">
+                      <div class="alert alert-info small py-1 px-2 mt-2 mb-0" id="tc-tmr-code" style="display:none;"></div>
 
                       <label class="form-label small mb-0 mt-3" for="tc-notes">Observations</label>
                       <textarea class="form-control form-control-sm" id="tc-notes" rows="3" placeholder="ex. Drift joystick gauche constaté à réception, corrigé par l'upgrade TMR."></textarea>
@@ -120,6 +121,16 @@
               <label class="btn btn-sm btn-outline-secondary mb-0"><i class="fas fa-upload me-1"></i>Importer une sauvegarde
                 <input type="file" accept=".json,application/json" hidden onchange="tc_import_history(this)">
               </label>
+            </div>
+            <div class="card mb-3">
+              <div class="card-body py-2">
+                <div class="small fw-semibold mb-1"><i class="fas fa-key me-1"></i>Code de recalibrage TMR (anciens clients)</div>
+                <div class="input-group input-group-sm" style="max-width: 460px;">
+                  <input type="text" class="form-control" id="tc-gen-serial" placeholder="N° de série de la manette (ex. E21N12345678)" onkeydown="if(event.key==='Enter') tc_generate_tmr_code()">
+                  <button class="btn btn-outline-primary" type="button" onclick="tc_generate_tmr_code()">Générer</button>
+                </div>
+                <div class="small mt-1" id="tc-gen-result"></div>
+              </div>
             </div>
             <div class="table-responsive">
               <table class="table table-sm align-middle">

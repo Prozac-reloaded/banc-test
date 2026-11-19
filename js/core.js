@@ -20,6 +20,8 @@ import { FinetuneHistory } from './finetune-history.js';
 import * as theme from './theme.js'
 import { tcResetSession, tcClearSession, tcSetSupportedQuickTests, tcMarkCalibration } from './techcleaner/session.js';
 import { initTechCleanerReport, tcOnControllerConnected, isTechCleanerReportVisible, techcleaner_handle_input } from './techcleaner/report.js';
+import { TC_CLIENT_MODE } from './techcleaner/mode.js';
+import { initTechCleanerClient, tcClientOnConnected, tc_client_handle_input } from './techcleaner/client.js';
 
 // Application State - manages app-wide state and UI
 const app = {
@@ -350,6 +352,7 @@ async function continue_connection({data, device}) {
     });
     try { tcSetSupportedQuickTests(controller.getSupportedQuickTests()); } catch (e) { /* modèle sans quick test */ }
     tcOnControllerConnected();
+    tcClientOnConnected();
 
     // Initialize SVG controller based on model
     await init_svg_controller(model);
@@ -392,7 +395,7 @@ async function continue_connection({data, device}) {
     }
 
     // Edge onboarding modal
-    if(model == "DS5_Edge") {
+    if(model == "DS5_Edge" && !TC_CLIENT_MODE) {
       show_edge_modal();
     }
 
@@ -543,6 +546,7 @@ function set_edge_progress(score) {
 }
 
 function show_welcome_modal() {
+  if (TC_CLIENT_MODE) return; // Tech-Cleaner : pas de fenêtre d'accueil côté client
   const already_accepted = Storage.getString("welcome_accepted");
   if(already_accepted == "1")
     return;
@@ -1110,6 +1114,9 @@ function isRangeCalibrationVisible() {
 function handleControllerInput({ changes, inputConfig, touchPoints, batteryStatus }) {
   const { buttonMap } = inputConfig;
 
+  // Tech-Cleaner : mesures de la version client (sans interrompre l'affichage normal)
+  tc_client_handle_input(changes);
+
   // Open Quick Test modal if options button is pressed while L1 is held down
   if (changes.options && controller.button_states.l1) {
     update_ds_button_svg({ l1: false }, buttonMap); // Clear L1
@@ -1604,8 +1611,27 @@ window.show_quick_test_modal = () => {
   });
 };
 
-// Tech-Cleaner : module rapport
+// Tech-Cleaner : module rapport (atelier) et version client
 initTechCleanerReport({ getController: () => controller });
+initTechCleanerClient({
+  getController: () => controller,
+  calibrateCenter: (done) => auto_calibrate_stick_centers(controller, (success, message) => {
+    if (success) {
+      tcMarkCalibration('center');
+      resetStickDiagrams();
+    }
+    if (message) success ? infoAlert(message, 2_000) : errorAlert(message);
+    done(success);
+  }),
+  calibrateRange: (done) => calibrate_range(controller, { ll_data, rr_data }, (success, message) => {
+    if (success) tcMarkCalibration('range');
+    resetStickDiagrams();
+    if (message) infoAlert(message, 2_000);
+    done(success);
+  }, false),
+  save: flash_all_changes,
+  reboot: reboot_controller,
+});
 
 // Auto-initialize the application when the module loads
 gboot();
